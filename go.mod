@@ -1,4 +1,4 @@
-module github.com/squeeze69/dbfgo2mysql
+module github.com/ivanaspi88/dbfgo2mysql
 
 go 1.15
 
