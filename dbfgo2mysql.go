@@ -20,6 +20,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	//	"github.com/ivanaspi88/charmap"
 	"github.com/ivanaspi88/dbf"
 )
 
@@ -35,53 +36,53 @@ const (
 	minRecordQueue     = 1
 )
 
-//number of records in the queue
+// number of records in the queue
 var recordQueue int
 
-//number of goroutines spawned
+// number of goroutines spawned
 var numGoroutines int
 
-//global mysqlurl - see the go lang database/sql package
-//sample url: "user:password@(127.0.0.1:3306)/database"
+// global mysqlurl - see the go lang database/sql package
+// sample url: "user:password@(127.0.0.1:3306)/database"
 var mysqlurl string
 
-//various flags, set by command line, default to false
+// various flags, set by command line, default to false
 var verbose, truncate, createtable, dumpcreatetable, insertignore, nobigint, droptable bool
 var abortonsqlerror bool
 
-//optional index
+// optional index
 var index string
 
-//max number of record to import, defaults to -1 (means no limit)
+// max number of record to import, defaults to -1 (means no limit)
 var maxrecord int
 
-//first record to fetch
+// first record to fetch
 var firstRecord int
 
-//read all dbf in memory
+// read all dbf in memory
 var readinmemory bool
 
-//global variables for --create
+// global variables for --create
 var collate string
 var engine string
 
-//LockableCounter a simple counter with a Mutex
+// LockableCounter a simple counter with a Mutex
 type LockableCounter struct {
 	count int
 	l     sync.Mutex
 }
 
-//Increment lockable counter by i items
+// Increment lockable counter by i items
 func (lc *LockableCounter) Increment(i int) {
 	lc.l.Lock()
 	defer lc.l.Unlock()
 	lc.count += i
 }
 
-//total number on insert errors (if any)
+// total number on insert errors (if any)
 var ierror LockableCounter
 
-//read profile, actually a fixed position file, first row it's a sql url
+// read profile, actually a fixed position file, first row it's a sql url
 func readprofile(prfname string) error {
 	f, err := os.Open(prfname)
 	if err != nil {
@@ -97,7 +98,7 @@ func readprofile(prfname string) error {
 	return nil
 }
 
-//returns a "CREATE TABLE" string using templates
+// returns a "CREATE TABLE" string using templates
 func createTableString(table string, collate string, engine string, dbr *dbf.Reader) string {
 	var fieldtype string
 	fields := dbr.FieldNames()
@@ -162,7 +163,7 @@ func createTableString(table string, collate string, engine string, dbr *dbf.Rea
 	return buf.String()
 }
 
-//Prepare the command line handling
+// Prepare the command line handling
 func commandLineSet() {
 	flag.BoolVar(&verbose, "v", false, "Verbose output")
 	flag.BoolVar(&truncate, "truncate", false, "Truncate table before writing")
@@ -198,7 +199,7 @@ func commandLineSet() {
 
 }
 
-//insertRoutine goroutine to insert data in dbms
+// insertRoutine goroutine to insert data in dbms
 func insertRoutine(ch chan dbf.OrderedRecord, over *sync.WaitGroup, stmt *sql.Stmt) {
 	defer over.Done()
 	defer func() {
@@ -221,7 +222,9 @@ func insertRoutine(ch chan dbf.OrderedRecord, over *sync.WaitGroup, stmt *sql.St
 			}
 		}
 	}()
+
 	for i := range ch {
+		//fmt.Println("Rec for MySQL:", i)
 		_, err := stmt.Exec(i...)
 		if err != nil {
 			panic(err)
@@ -229,7 +232,7 @@ func insertRoutine(ch chan dbf.OrderedRecord, over *sync.WaitGroup, stmt *sql.St
 	}
 }
 
-//workaround: os.Exit ignores deferred functions
+// workaround: os.Exit ignores deferred functions
 func metamain() (int, string, error) {
 
 	var start = time.Now()
@@ -287,6 +290,7 @@ func metamain() (int, string, error) {
 	}
 	//Set some default flags, skips deleted and "weird" records (see dbf package)
 	dbfile.SetFlags(dbf.FlagDateAssql | dbf.FlagSkipWeird | dbf.FlagSkipDeleted | dbf.FlagEmptyDateAsZero)
+	//dbfile.SetFlags(dbf.FlagDateAssql | dbf.FlagSkipWeird | dbf.FlagSkipDeleted)
 
 	//check if the table must be dropped before creation
 	if droptable && !dumpcreatetable {
